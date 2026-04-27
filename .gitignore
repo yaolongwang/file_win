@@ -1,0 +1,9 @@
+# Zig 构建产物
+zig-out/
+.zig-cache/
+
+# 编辑器/系统杂项
+*.swp
+*.bak
+.DS_Store
+Thumbs.db
