@@ -37,11 +37,11 @@ pub fn main(init: std.process.Init) !u8 {
     const arena = init.arena.allocator();
 
     const localappdata = init.environ_map.get("LOCALAPPDATA") orelse {
-        std.debug.print("file_wrapper: LOCALAPPDATA not set\n", .{});
+        std.debug.print("file_win: LOCALAPPDATA not set\n", .{});
         return 2;
     };
 
-    const cache_dir = try std.fs.path.join(arena, &.{ localappdata, "file_wrapper", cache_dir_name });
+    const cache_dir = try std.fs.path.join(arena, &.{ localappdata, "file_win", cache_dir_name });
     try ensurePayloadExtracted(io, arena, cache_dir);
 
     const file_real_path = try std.fs.path.join(arena, &.{ cache_dir, "file-real.exe" });
@@ -70,7 +70,7 @@ pub fn main(init: std.process.Init) !u8 {
         .stdout = .pipe,
         .stderr = .pipe,
     }) catch |err| {
-        std.debug.print("file_wrapper: spawn {s}: {t}\n", .{ file_real_path, err });
+        std.debug.print("file_win: spawn {s}: {t}\n", .{ file_real_path, err });
         return 127;
     };
     defer child.kill(io);
