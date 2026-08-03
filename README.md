@@ -1,7 +1,6 @@
 # file_wrapper
 
-把 Windows 上散落的 GNU [`file(1)`](https://www.darwinsys.com/file/) 工具
-（`file.exe` + 两个 DLL + `magic.mgc`）合成一个独立的 `file.exe`。
+把 Windows 上散落的 GNU [`file(1)`](https://www.darwinsys.com/file/) 工具（`file.exe` + 两个 DLL + `magic.mgc`）合成一个独立的 `file.exe`。
 
 单文件，无外部依赖，不需要 `MAGIC` 环境变量。
 
@@ -21,7 +20,7 @@ file.exe --version
 
 外壳用 Zig 写。构建时通过 `@embedFile` 把 4 个 payload 内嵌进去，
 首次运行释放到 `%LOCALAPPDATA%\file_wrapper\payload-<hash>\`，
-之后转调真正的 `file.exe`，stdio 与退出码原样透传。
+之后转调真正的 `file.exe`，并对 Windows 下的输出与参数做兼容处理。
 
 `<hash>` 是 payload 内容指纹，换文件重建会自动启用新目录，旧缓存自然失效。
 
