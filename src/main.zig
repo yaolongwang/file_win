@@ -48,14 +48,14 @@ pub fn main(init: std.process.Init) !u8 {
     const magic_mgc_path = try std.fs.path.join(arena, &.{ cache_dir, "magic.mgc" });
 
     const args = try init.minimal.args.toSlice(arena);
-    // yazi on Windows uses `file -bL --mime-type -f -` and writes paths via stdin.
-    // This payload mishandles both `-f -` and `-L`, so normalize them here.
+
+    // yazi 等通过 stdin 传路径（-f -）；内嵌 payload 不支持，在此读取后追加到 argv。
     const stdin_paths = if (usesFilesFromStdin(args))
         try readFilesFromStdinPaths(arena, io)
     else
         &.{};
 
-    // 强制 -r 保留原始文件名输出，并让 -m 指向缓存中的 magic.mgc。
+    // 注入 -r/-m，使输出保留路径名且不依赖 MAGIC 环境变量。
     var argv: std.ArrayList([]const u8) = .empty;
     try argv.append(arena, file_real_path);
     try argv.append(arena, "-r");
@@ -90,6 +90,7 @@ pub fn main(init: std.process.Init) !u8 {
     };
 }
 
+// 子进程输出可能为系统 ACP 编码，写出前转为 UTF-8。
 fn writeChildOutput(io: std.Io, arena: std.mem.Allocator, out_file: std.Io.File, bytes: []const u8) !void {
     if (bytes.len == 0) return;
     const utf8 = try normalizeChildOutputAlloc(arena, bytes);
@@ -139,8 +140,7 @@ fn appendForwardedArgs(
     }
 }
 
-// This Windows payload errors out on `-L`, while yazi's preset plugins add it by
-// default. Dropping it is more compatible than letting the whole invocation fail.
+// 内嵌 file 不支持 -L；丢弃该参数以免整次调用失败。
 fn normalizeForwardedArg(arg: []const u8) ?[]const u8 {
     if (std.mem.eql(u8, arg, "-L")) return null;
     if (std.mem.eql(u8, arg, "--dereference")) return null;
@@ -228,7 +228,7 @@ fn ensurePayloadExtracted(io: std.Io, arena: std.mem.Allocator, cache_dir: []con
         try f.writeStreamingAll(io, entry.bytes);
     }
 
-    // marker 最后写：它的存在即"全部就绪"。
+    // .ready 最后写入，存在即表示 payload 已全部落盘。
     var mf = try cwd.createFile(io, marker_path, .{ .truncate = true });
     defer mf.close(io);
     try mf.writeStreamingAll(io, payload_hash_hex);

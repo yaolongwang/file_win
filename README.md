@@ -2,7 +2,7 @@
 
 把 Windows 上散落的 GNU [`file(1)`](https://www.darwinsys.com/file/) 工具（`file.exe` + 两个 DLL + `magic.mgc`）合成一个独立的 `file.exe`。
 
-单文件，无外部依赖，不需要 `MAGIC` 环境变量。
+单文件，无外部依赖，无需 `MAGIC` 环境变量。
 
 ## 用法
 
@@ -13,16 +13,13 @@ file.exe README.md
 file.exe --version
 ```
 
-把 `file.exe` 放到任意目录（如 `~\.local\bin`），将该目录加入 `PATH`，
-之后任何终端、任何路径下都能直接 `file <文件>` 调用。
+把 `file.exe` 放到任意目录（如 `~\.local\bin`），并将该目录加入 `PATH` 后，任何终端、任何路径下都能直接 `file <文件>` 调用。
 
 ## 工作方式
 
-外壳用 Zig 写。构建时通过 `@embedFile` 把 4 个 payload 内嵌进去，
-首次运行释放到 `%LOCALAPPDATA%\file_win\payload-<hash>\`，
-之后转调真正的 `file.exe`，并对 Windows 下的输出与参数做兼容处理。
+外壳用 Zig 写。构建时通过 `@embedFile` 把 4 个 payload 内嵌进去，首次运行释放到 `%LOCALAPPDATA%\file_win\payload-<hash>\`，之后转调真正的 `file.exe`，并对 Windows 下的输出与参数做兼容处理。
 
-`<hash>` 是 payload 内容指纹，换文件重建会自动启用新目录，旧缓存自然失效。
+`<hash>` 是 payload 指纹，换文件重建会自动启用新目录，旧缓存自然失效。
 
 ## 构建
 
@@ -30,8 +27,9 @@ file.exe --version
 
 ```powershell
 zig build
-# 产物：zig-out\bin\file.exe（约 11 MB）
 ```
+
+> 产物：zig-out\bin\file.exe（约 11 MB）
 
 如需更新 payload，替换 `payload/` 下对应文件后重新构建即可，缓存目录会自动随内容指纹切换。
 

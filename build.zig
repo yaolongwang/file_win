@@ -5,7 +5,6 @@ pub fn build(b: *std.Build) void {
         .default_target = .{ .os_tag = .windows, .cpu_arch = .x86_64 },
     });
 
-    // payload 体积占绝对大头，外壳代码再优化也省不出多少；统一走 ReleaseSmall。
     const optimize: std.builtin.OptimizeMode = .ReleaseSmall;
 
     const payload_files = [_][]const u8{
@@ -23,10 +22,13 @@ pub fn build(b: *std.Build) void {
         "magic.mgc",
     };
 
-    // 构建期算指纹比 comptime 哈希快几个数量级。
+    const Blake3 = std.crypto.hash.Blake3;
+    const payload_hash_bytes = 8;
+
     const io = b.graph.io;
-    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+    var hasher = Blake3.init(.{});
     var sizes: [payload_files.len]u64 = undefined;
+    // 指纹：按固定顺序拼接 name\0bytes\0。
     for (payload_files, payload_names, 0..) |path, name, i| {
         const data = std.Io.Dir.cwd().readFileAlloc(io, path, b.allocator, .limited(64 * 1024 * 1024)) catch |err| {
             std.debug.panic("read {s}: {s}", .{ path, @errorName(err) });
@@ -37,10 +39,10 @@ pub fn build(b: *std.Build) void {
         hasher.update(&[_]u8{0});
         sizes[i] = data.len;
     }
-    var digest: [32]u8 = undefined;
+    var digest: [payload_hash_bytes]u8 = undefined;
     hasher.final(&digest);
     const hex = std.fmt.bytesToHex(digest, .lower);
-    const payload_hash_hex = b.dupe(hex[0..16]);
+    const payload_hash_hex = b.dupe(hex[0..]);
 
     const opts = b.addOptions();
     opts.addOption([]const u8, "payload_hash_hex", payload_hash_hex);
