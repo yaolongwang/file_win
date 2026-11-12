@@ -1,8 +1,8 @@
 # file_win
 
-把 Windows 上散落的 GNU [`file(1)`](https://www.darwinsys.com/file/) 工具（`file.exe` + 两个 DLL + `magic.mgc`）合成一个独立的 `file.exe`。
+把 Windows 上散落的 GNU [`file(1)`](https://www.darwinsys.com/file/) 工具（`file.exe` + 五个 DLL + `magic.mgc`）合成一个独立的 `file.exe`。
 
-单文件，无外部依赖，无需 `MAGIC` 环境变量。
+单文件，内嵌所需的非系统 DLL，无需 `MAGIC` 环境变量。
 
 ## 用法
 
@@ -17,19 +17,19 @@ file.exe --version
 
 ## 工作方式
 
-外壳用 Zig 写。构建时通过 `@embedFile` 把 4 个 payload 内嵌进去，首次运行释放到 `%LOCALAPPDATA%\file_win\payload-<hash>\`，之后转调真正的 `file.exe`，并对 Windows 下的输出与参数做兼容处理。
+外壳用 Zig 写。构建时通过 `@embedFile` 把 7 个 payload 内嵌进去，首次运行释放到 `%LOCALAPPDATA%\file_win\payload-<hash>\`，之后转调真正的 `file.exe`，并对 Windows 下的输出与参数做兼容处理。
 
 `<hash>` 是 payload 指纹，换文件重建会自动启用新目录，旧缓存自然失效。
 
 ## 构建
 
-需要 Zig 0.16。`payload/` 已在仓库中，clone 后可直接构建：
+需要 Zig 0.17.x。`payload/` 已在仓库中，clone 后可直接构建：
 
 ```powershell
 zig build
 ```
 
-> 产物：zig-out\bin\file.exe（约 11 MB）
+> 产物：zig-out\bin\file.exe
 
 如需更新 payload，替换 `payload/` 下对应文件后重新构建即可，缓存目录会自动随内容指纹切换。
 
@@ -44,6 +44,8 @@ file_win/
 │   ├── libmagic-1.dll
 │   ├── libsystre-0.dll
 │   ├── libtre-5.dll
+│   ├── libintl-8.dll
+│   ├── libiconv-2.dll
 │   ├── magic.mgc
 │   ├── README.md      # payload 来源说明
 │   └── LICENSES/      # 上游许可证全文
@@ -55,5 +57,4 @@ file_win/
 
 外壳代码（`build.zig`、`src/`）采用 MIT，详见 [LICENSE](LICENSE)。
 
-`payload/` 内二进制来自 file project 与 libsystre/TRE，均为 2-clause BSD，
-许可证全文保存在 [`payload/LICENSES/`](payload/LICENSES)。
+`payload/` 中的二进制文件具体来源、版本和校验和见 [`payload/README.md`](payload/README.md)，许可证全文保存在 [`payload/LICENSES/`](payload/LICENSES)。

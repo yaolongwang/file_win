@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 dimo
+Copyright (c) 2026 yaolongwang
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,5 +23,5 @@ SOFTWARE.
 ---
 
 This repository also bundles third-party binaries under `payload/`.
-See `payload/README.md` for their licenses (all 2-clause BSD, preserved
-under `payload/LICENSES/`).
+See `payload/README.md` for their respective licenses (2-clause BSD and
+LGPL-2.1-or-later), preserved under `payload/LICENSES/`.

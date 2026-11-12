@@ -21,11 +21,13 @@ const PayloadEntry = struct {
     size: u64,
 };
 
-const payload: [5]PayloadEntry = .{
+const payload: [7]PayloadEntry = .{
     .{ .name = "file-real.exe", .bytes = @embedFile("file_real_exe"), .size = build_options.size_file_real_exe },
     .{ .name = "libmagic-1.dll", .bytes = @embedFile("libmagic_1_dll"), .size = build_options.size_libmagic_1_dll },
     .{ .name = "libsystre-0.dll", .bytes = @embedFile("libsystre_0_dll"), .size = build_options.size_libsystre_0_dll },
     .{ .name = "libtre-5.dll", .bytes = @embedFile("libtre_5_dll"), .size = build_options.size_libtre_5_dll },
+    .{ .name = "libintl-8.dll", .bytes = @embedFile("libintl_8_dll"), .size = build_options.size_libintl_8_dll },
+    .{ .name = "libiconv-2.dll", .bytes = @embedFile("libiconv_2_dll"), .size = build_options.size_libiconv_2_dll },
     .{ .name = "magic.mgc", .bytes = @embedFile("magic_mgc"), .size = build_options.size_magic_mgc },
 };
 
@@ -41,11 +43,11 @@ pub fn main(init: std.process.Init) !u8 {
         return 2;
     };
 
-    const cache_dir = try std.fs.path.join(arena, &.{ localappdata, "file_win", cache_dir_name });
+    const cache_dir = try std.Io.Dir.path.join(arena, &.{ localappdata, "file_win", cache_dir_name });
     try ensurePayloadExtracted(io, arena, cache_dir);
 
-    const file_real_path = try std.fs.path.join(arena, &.{ cache_dir, "file-real.exe" });
-    const magic_mgc_path = try std.fs.path.join(arena, &.{ cache_dir, "magic.mgc" });
+    const file_real_path = try std.Io.Dir.path.join(arena, &.{ cache_dir, "file-real.exe" });
+    const magic_mgc_path = try std.Io.Dir.path.join(arena, &.{ cache_dir, "magic.mgc" });
 
     const args = try init.minimal.args.toSlice(arena);
 
@@ -213,29 +215,29 @@ fn readStreamAlloc(gpa: std.mem.Allocator, io: std.Io, file: std.Io.File, limit:
 
 fn ensurePayloadExtracted(io: std.Io, arena: std.mem.Allocator, cache_dir: []const u8) !void {
     const cwd = std.Io.Dir.cwd();
-    const marker_path = try std.fs.path.join(arena, &.{ cache_dir, ".ready" });
+    const marker_path = try std.Io.Dir.path.join(arena, &.{ cache_dir, ".ready" });
 
     if (markerOk(io, cwd, marker_path) and try allFilesPresent(io, cwd, arena, cache_dir)) return;
 
     try cwd.createDirPath(io, cache_dir);
 
     for (payload) |entry| {
-        const final_path = try std.fs.path.join(arena, &.{ cache_dir, entry.name });
+        const final_path = try std.Io.Dir.path.join(arena, &.{ cache_dir, entry.name });
         if (try fileMatchesSize(io, cwd, final_path, entry.bytes.len)) continue;
 
-        var f = try cwd.createFile(io, final_path, .{ .truncate = true });
+        const f = try cwd.createFile(io, final_path, .{ .truncate = true });
         defer f.close(io);
         try f.writeStreamingAll(io, entry.bytes);
     }
 
     // .ready 最后写入，存在即表示 payload 已全部落盘。
-    var mf = try cwd.createFile(io, marker_path, .{ .truncate = true });
+    const mf = try cwd.createFile(io, marker_path, .{ .truncate = true });
     defer mf.close(io);
     try mf.writeStreamingAll(io, payload_hash_hex);
 }
 
 fn markerOk(io: std.Io, cwd: std.Io.Dir, marker_path: []const u8) bool {
-    var f = cwd.openFile(io, marker_path, .{}) catch return false;
+    const f = cwd.openFile(io, marker_path, .{}) catch return false;
     defer f.close(io);
     var buf: [64]u8 = undefined;
     var reader = f.reader(io, &.{});
@@ -245,14 +247,14 @@ fn markerOk(io: std.Io, cwd: std.Io.Dir, marker_path: []const u8) bool {
 
 fn allFilesPresent(io: std.Io, cwd: std.Io.Dir, arena: std.mem.Allocator, cache_dir: []const u8) !bool {
     for (payload) |entry| {
-        const p = try std.fs.path.join(arena, &.{ cache_dir, entry.name });
+        const p = try std.Io.Dir.path.join(arena, &.{ cache_dir, entry.name });
         if (!try fileMatchesSize(io, cwd, p, entry.bytes.len)) return false;
     }
     return true;
 }
 
 fn fileMatchesSize(io: std.Io, cwd: std.Io.Dir, path: []const u8, expected: usize) !bool {
-    var f = cwd.openFile(io, path, .{}) catch |err| switch (err) {
+    const f = cwd.openFile(io, path, .{}) catch |err| switch (err) {
         error.FileNotFound => return false,
         else => return err,
     };
